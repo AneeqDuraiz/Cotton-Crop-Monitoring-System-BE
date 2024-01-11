@@ -17,7 +17,7 @@ import dotenv
 
 
 service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, 'cotton-monitoring-cloud-2d1f42d896bc.json')
+credentials = ee.ServiceAccountCredentials(service_account, 'CottonMonitoring\cotton.json')
 ee.Initialize(credentials)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
