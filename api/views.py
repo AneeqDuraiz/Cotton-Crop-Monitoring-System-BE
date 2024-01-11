@@ -20,7 +20,7 @@ from datetime import datetime
 from django.utils import timezone
 from background_task import background
 from background_task.models import Task
-# Create your views here.
+
 
  #5*24*60*60)  #Schedule the task every 5 days (5 * 24 * 60 * 60 seconds)
 @background(schedule = 1) 
