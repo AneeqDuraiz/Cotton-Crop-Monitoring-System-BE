@@ -16,7 +16,7 @@ import dotenv
 
 
 
-config = 'CottonMonitoring\cotton.json'
+config = 'CottonMonitoring/cotton.json'
 service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, config)
 ee.Initialize(credentials)
