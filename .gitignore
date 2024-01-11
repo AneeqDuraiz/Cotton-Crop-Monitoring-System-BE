@@ -5,6 +5,8 @@ __pycache__
 db.sqlite3
 media
 abc.txt
+Pipfile
+Pipfile.lock
 # Environments 
 .env 
 .venv 
