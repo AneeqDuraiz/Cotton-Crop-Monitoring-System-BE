@@ -17,7 +17,20 @@ import dotenv
 
 
 service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, 'api\cotton-monitoring-cloud-2d1f42d896bc.json')
+credentials = ee.ServiceAccountCredentials(service_account, {
+  "type": "service_account",
+  "project_id": "cotton-monitoring-cloud",
+  "private_key_id": "2d1f42d896bcbd7e573694964eecc475626ebb5d",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDJIm00ccko68bf\ncsMc1wJdfKEKrZRuZs3msw4ET2NokxU+bOc8wr3e13kvUxn4hI0cQtRN/QoklPTJ\nTh+2dvW5yYVumeMSRo7L3oifc1iKofKTuW8DhZSVW8e0Te93qoyCxWmTfyr/UBlX\nICEr9RPjUalaVvWPx7l+i419r0EykPHE9/uhwGfINYZg5SCcSKYMR5fdecz3xxbU\nB02eqWo4lNd6vEE34ehQlH2U2/rDoAadDIDwoahmC8gH8xYLBnyr0j9quPliBr4l\nBe1LoZIu0IFVMqNyIAUS99p1s02XTvINAjPEeuuXVyUjsPA1uqzlAAcgMPhUT3yE\nil+grSuFAgMBAAECggEAAplb1uZPF3xo51iLUqQONLCVF9c0UpTKFSM4nGJv0Trw\nfWp3NpdXNXNCP2TA2tFkuYQo7craQay037KjgV/4hbLx7EZL5rCHnbGxzqIWzv9g\nymAoFHsEi7E6eejNEKp1SVzkzGMNvgArQzzgZDn/HYFE0nbKuvd1ZWiDxP76k4P3\noKGk1X5dHlhYCk1c4wEGGWoAjq3ji82bBWeaHpSb8S32ALWSKF37r3DfHDfkaR5w\nnWFfDhR5Nct4TiTcWBEac6FPe0aTHRaCKodhzGpXk21C97O3mDmxZfA1lirr45Jm\n9NYKgB8LHhX3xQ7HrlbCDIHTEUB1sc2NtoQTwuB3SwKBgQDt5dAn6nqW/VVQUeXf\nWbbG18teqDLdXL1x6TnteQ6w9sdQ3DPsYqZzge3pGdEcG0ObNijY+NKjFdJdZsi1\n2R7P1D8hf821+PUPjLt9JzPHdB8/AWMak3SvSi8rfy59yw4863pZRPyBIsULxdBB\nLvphc4UpG3ejU2HKnoU0C8vI3wKBgQDYcHmhfoJ6dxzvPyd3TouWifaCLBjtfLsi\nOrJopLIvIGe79C+HtUAWDeRHi2Ol/aTh9DjbnFdkqRdEa0agqxVlGtm3MUepjykW\noIqdlDGnmy8dhcq0K5xTkKD9B+HUEFK/t/n8UkWyMb0fpsEcFdousXwDnVco3pFC\nyzg2mOSEGwKBgQCeGZamkFv8MEwcXvEn6BViPFN5isqS9mkoZNkMiuFKlhaMFGul\nc0IvjW+w9GlWBoB9jBbFa0eA/qWZUQ+eWrbxY5q5BpiNkPA770lCuWTd7rw9QQy9\nwrVPMTv76j/ZdbL2pX/gB8rPf234jvQB/diEHyOl2A1AS8+3unXHyvcZfQKBgEuS\ngjWsOZzPKFA1Ke+TglPO2j67bPzHN4QNIKw/DWQ9GVtcOJhW5giNUy7T8bhMpxyq\nLIwpu64PCGvAVUnWUsMZq/k2AMKolP0skxnQW8IdAkd5prxgGdZnwn53GRf1lx8P\n+v5qL6G3kkSR8g1/Z84z9IxCjONdSzUaRgdyPSAPAoGAfLFAP9WBLsFPnlig5Qjd\nFxHbdV0qhHQsdXNUum3vsJTbqR1/ipAKYsv/gZxkZ0tebe2gEdHAuZuHPHzL1Wuh\nnBLbHD86HoYM0OZ3wS5iZ4k7RfuFv1nVYLWY1HRqdCelDQC/uk8xPOOivWBhm/Vy\n1mp/igzXrHTgZDVtvusyoAI=\n-----END PRIVATE KEY-----\n",
+  "client_email": "aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com",
+  "client_id": "100292290513069523501",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/aneeqgee%40cotton-monitoring-cloud.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
+)
 ee.Initialize(credentials)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
