@@ -10,8 +10,6 @@
       "src": "/(.*)",
       "dest": "CottonMonitoring/wsgi.py"
     }
-  ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/" }
   ]
+
 }
