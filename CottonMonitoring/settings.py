@@ -29,9 +29,9 @@ config = {
 }
 
 
-service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
-credentials = ee.ServiceAccountCredentials(service_account, str(config))
-ee.Initialize(credentials)
+# service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
+# credentials = ee.ServiceAccountCredentials(service_account, str(config))
+# ee.Initialize(credentials)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
