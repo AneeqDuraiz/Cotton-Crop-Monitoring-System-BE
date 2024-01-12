@@ -364,7 +364,7 @@ class GetPointsNDVIView(APIView):
         dateStr = request.data["date"]     
         givenDate = (datetime.strptime(dateStr, '%Y-%m-%d')).date()
         field_data = Field_Data.objects.filter(field = fieldID, season = seasonID)
-        print("asdfas", field_data[0].id)
+        
         response = {}
         points_Ndvi = []
         if field_data.exists():
@@ -381,7 +381,7 @@ class GetPointsNDVIView(APIView):
                 #points_Ndvi.append({"lat_lng": lat_lng, "ndvi": ndvi})
             feature_collection = ee.FeatureCollection(batch_points)
            # feature_collection = ee.FeatureCollection(point_collection)
-            print("Feature Colection: ", feature_collection.size())
+           # print("Feature Colection: ", feature_collection.size())
             image = ee.ImageCollection('COPERNICUS/S2_HARMONIZED') \
                 .filterDate(str(givenDate-timedelta(days=1)), str(givenDate+timedelta(days=1))  ) \
                 .filterBounds(feature_collection) \
@@ -426,13 +426,13 @@ class GetPointsNDVIView(APIView):
             #     lat_lng = obj.lat_lng
             #     ndvi = features[i]['properties']['ndvi']
             #     points_Ndvi.append({"lat_lng": lat_lng, "ndvi": ndvi})
-            print("Result list:", result_list.getInfo())
+            # print("Result list:", result_list.getInfo())
             result = result_list.getInfo()
             #print(result)
             results = []
             for o in result["features"]:
-                lat = round(o["geometry"]["coordinates"][1], 4 )
-                lng = round(o["geometry"]["coordinates"][0], 4)
+                lat = o["geometry"]["coordinates"][1]
+                lng = o["geometry"]["coordinates"][0]
                 s = f"{{'lat': '{lat}', 'lng': '{lng}'}}"
                 res = {"lat_lng": s, "ndvi": o["properties"]["ndvi"]}
                 results.append(res)
@@ -440,6 +440,8 @@ class GetPointsNDVIView(APIView):
             response["Field_Grid"] = results
         else:
             response['Error'] = "Invalid Field id or Season id"
+
+        print("Total Quardinates", len(results))
         return JsonResponse(response, safe=False)
 
 class FieldStatsView(APIView): 
@@ -633,12 +635,12 @@ class PatchFieldView(APIView):
         if "lat_lng" in request.data["Field_Grid"]:
             Field_Grid.objects.filter(field_data=field_data.id).delete()
             points = json.loads(request.data["Field_Grid"]["lat_lng"])
-            ndvi_results = [calculate_point_ndvi(point,startDate=str(date.today()-timedelta(days=5)), endDate=str(date.today()+timedelta(days=1))) for point in points]
+            ndvi_results = calculate_point_ndvi2(points,startDate=str(date.today()-timedelta(days=5)), endDate=str(date.today()+timedelta(days=1)))
             gridResponse = []
             for point, ndvi in zip(points, ndvi_results):
                 data = {"field_data" : field_data.id,
                         "lat_lng": str(point),
-                        "ndvi": ndvi}
+                        "ndvi": ndvi["ndvi"]}
                 fieldGridSerializer = FieldGridSerializer(data = data)
                 fieldGridSerializer.is_valid(raise_exception=True)
                 fieldGridSerializer.save()
