@@ -3,6 +3,7 @@ import json
 from django.http import JsonResponse
 from django.conf import settings
 import ee
+import numpy as np
 #import geemap 
 import joblib
 from datetime import date,timedelta
@@ -19,7 +20,7 @@ from django.db.models import Prefetch
 from datetime import datetime
 from django.utils import timezone
 from background_task import background
-from background_task.models import Task
+
 
 
  #5*24*60*60)  #Schedule the task every 5 days (5 * 24 * 60 * 60 seconds)
@@ -1047,6 +1048,34 @@ class DeletePatchJobsView(APIView):
         response_data = {'jobs_data': response}
         return JsonResponse(response_data, safe=False)
         
+def convert_Into_Numpy_Format(data_list):
+    array = np.array([(
+    d['B1'],
+    d['B11'],
+    d['B12'],
+    d['B2'],
+    d['B3'],
+    d['B4'],
+    d['B5'],
+    d['B6'],
+    d['B7'],
+    d['B8'],
+    d['B8A'],
+    d['B9'],
+    d['NDVI'],
+    )for d in data_list])
+
+    return array
+
+def convert_Into_Numpy_Format2(data_list):
+    array = []
+
+    for i in range(0, len(data_list.getInfo()['features'])):
+        temp = []
+        temp.append(data_list.getInfo()['features'][i]['properties'])
+        array.append(convert_Into_Numpy_Format(temp))
+    return  array
+
 
 class ClassificationView(APIView):
     def post(self, request):
@@ -1070,7 +1099,7 @@ class ClassificationView(APIView):
         for coord in coordinates:
             coord['lat'] = float(coord['lat'])
             coord['lng'] = float(coord['lng'])
-            
+
         polygon_coordinates = [[coord['lng'], coord['lat']] for coord in coordinates]
         # Create a polygon geometry from the coordinates
 
@@ -1079,21 +1108,33 @@ class ClassificationView(APIView):
 
         sorted_collection = filtered.sort('system:time_start', False).map(addNDVI_S2)
         most_recent_image = sorted_collection.first()
-        features = most_recent_image.sampleRegions(collection=polygon_geometry,scale=10)
-        geemap.ee_to_pandas(features)
+        features = most_recent_image.sampleRegions(collection=polygon_geometry,scale=30)
 
-        df=geemap.ee_to_pandas(features)
-        df = df.drop(['QA10', 'QA20', 'QA60', 'B10'],axis=1)
+        indices = features.getInfo()
+        dictionary = {}
 
-        column_order = ["B1","B11"	,"B12"	,"B2"	,"B3",	"B4",	"B5",	"B6"	,"B7",	"B8"	,"B8A"	,"B9"	,"NDVI"]
+        dictionary['B1'] = indices.get('B1')
+        dictionary['B11'] = indices.get('B11')
+        dictionary['B12'] = indices.get('B12')
+        dictionary['B2'] = indices.get('B2')
+        dictionary['B3'] = indices.get('B3')
+        dictionary['B4'] = indices.get('B4')
+        dictionary['B5'] = indices.get('B5')
+        dictionary['B6'] = indices.get('B6')
+        dictionary['B7'] = indices.get('B7')
+        dictionary['B8'] = indices.get('B8')
+        dictionary['B8A'] = indices.get('B8A')
+        dictionary['B9'] = indices.get('B9')
+        dictionary['NDVI'] = indices.get('NDVI')
 
-        # Reorder the columns using the reorder method
-        df = df[column_order]
+        input_data=[]
+        input_data.append(dictionary)
+        input_array = convert_Into_Numpy_Format2(features)
 
         iclassifier = joblib.load('cotton22_rf.pkl')
-        predictions = iclassifier.predict(df)
+        predictions = iclassifier.predict(np.vstack(input_array))
 
-        print(predictions)
+        # print(predictions)
         element_counts = defaultdict(int)
 
         # Count occurrences of elements in the array
@@ -1105,16 +1146,17 @@ class ClassificationView(APIView):
 
         def get_most_common_label(element_counts):
             labels = {0: "No Crop", 1: "Cotton", 2: "Other Crop"}
-            
+
             # Find the element with the highest count
             most_common_element = max(element_counts, key=element_counts.get)
-            
+
             # Get the label for the most common element
             most_common_label = labels.get(most_common_element, "Unknown")
 
             return most_common_label
 
         finalPrediction = get_most_common_label(element_counts)
+       
         return JsonResponse({"prediction": finalPrediction})
 
 
