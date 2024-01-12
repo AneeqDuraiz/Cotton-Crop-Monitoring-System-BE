@@ -1130,11 +1130,12 @@ class ClassificationView(APIView):
         input_data=[]
         input_data.append(dictionary)
         input_array = convert_Into_Numpy_Format2(features)
+        
+        iclassifier = joblib.load('cotton22.joblib')
+        print(iclassifier)
+        predictions = iclassifier.predict(np.vstack(input_array))       
 
-        iclassifier = joblib.load('cotton22_rf.joblib')
-        predictions = iclassifier.predict(np.vstack(input_array))
-
-        # print(predictions)
+        print('predictions')
         element_counts = defaultdict(int)
 
         # Count occurrences of elements in the array
@@ -1143,7 +1144,7 @@ class ClassificationView(APIView):
 
         # Convert the defaultdict to a regular dictionary if needed
         element_counts = dict(element_counts)
-
+        
         def get_most_common_label(element_counts):
             labels = {0: "No Crop", 1: "Cotton", 2: "Other Crop"}
 
@@ -1156,7 +1157,7 @@ class ClassificationView(APIView):
             return most_common_label
 
         finalPrediction = get_most_common_label(element_counts)
-       
+        
         return JsonResponse({"prediction": finalPrediction})
 
 
