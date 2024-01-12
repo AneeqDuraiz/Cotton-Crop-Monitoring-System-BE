@@ -462,7 +462,7 @@ class FieldStatsView(APIView):
         
 
         coordinates = json.loads(fieldData["coordinates"])
-        avgNDVI = calculate_avg_ndvi(coordinates=coordinates, startDate=str(date.today()-timedelta(days=5)), endDate=str(date.today()+timedelta(days=1)))
+        avgNDVI = calculate_avg_ndvi(coordinates=coordinates, startDate=str(date.today()-timedelta(days=15)), endDate=str(date.today()+timedelta(days=1)))
         fieldData["avg_ndvi"] = avgNDVI
 
         ee_coordinates = [(float(point["lng"]), float(point["lat"])) for point in coordinates]
