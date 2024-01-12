@@ -1131,7 +1131,7 @@ class ClassificationView(APIView):
         input_data.append(dictionary)
         input_array = convert_Into_Numpy_Format2(features)
 
-        iclassifier = joblib.load('cotton22_rf.pkl')
+        iclassifier = joblib.load('cotton22_rf.joblib')
         predictions = iclassifier.predict(np.vstack(input_array))
 
         # print(predictions)
