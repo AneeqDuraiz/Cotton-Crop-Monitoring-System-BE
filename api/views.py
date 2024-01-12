@@ -373,7 +373,9 @@ class GetPointsNDVIView(APIView):
             for obj in field_grid:
                 lat_lng = obj.lat_lng
                 point = lat_lng.replace("'", "\"")
+                
                 point = json.loads(point)
+                
                 batch_points.append(ee.Geometry.Point(float(point['lng']), float(point['lat'])))
                 #ndvi = calculate_point_ndvi(point=point, startDate=str(givenDate-timedelta(days=1)), endDate=str(givenDate+timedelta(days=1)))
                 #points_Ndvi.append({"lat_lng": lat_lng, "ndvi": ndvi})
@@ -429,8 +431,8 @@ class GetPointsNDVIView(APIView):
             #print(result)
             results = []
             for o in result["features"]:
-                lat = o["geometry"]["coordinates"][1]
-                lng = o["geometry"]["coordinates"][0]
+                lat = round(o["geometry"]["coordinates"][1], 4 )
+                lng = round(o["geometry"]["coordinates"][0], 4)
                 s = f"{{'lat': '{lat}', 'lng': '{lng}'}}"
                 res = {"lat_lng": s, "ndvi": o["properties"]["ndvi"]}
                 results.append(res)
@@ -1131,7 +1133,7 @@ class ClassificationView(APIView):
         input_data.append(dictionary)
         input_array = convert_Into_Numpy_Format2(features)
         
-        iclassifier = joblib.load('cotton22.joblib')
+        iclassifier = joblib.load('cotton22_rf.pkl')
         print(iclassifier)
         predictions = iclassifier.predict(np.vstack(input_array))       
 
