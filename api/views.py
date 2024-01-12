@@ -317,7 +317,7 @@ class GetStoredAvgNDVIView(APIView):
         
 
 class GetPointsNDVIView(APIView):
-    def get(self, request):
+    def post(self, request):
         # token = request.COOKIES.get('jwt')
 
         # if not token:
