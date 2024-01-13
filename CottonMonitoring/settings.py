@@ -16,7 +16,7 @@ import dotenv
 
 
 
-config = 'CottonMonitoring/cotton.json'
+config = 'cotton.json'
 service_account = 'aneeqgee@cotton-monitoring-cloud.iam.gserviceaccount.com'
 credentials = ee.ServiceAccountCredentials(service_account, config)
 ee.Initialize(credentials)
@@ -32,7 +32,7 @@ if os.path.isfile(dotenv_file):
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ['SECRET_KEY']
+SECRET_KEY = 'django-insecure-$n52vjc7snq@+m&!=vc_k@!^t)-4mdvjp*iok)eyp1ca54ogt8'
 
 
 
@@ -93,12 +93,12 @@ WSGI_APPLICATION = 'CottonMonitoring.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ['ENGINE'],
-        'NAME': os.environ['NAME'],
-        'USER': os.environ['USER'],
-        'HOST': os.environ['HOST'],
-        'PASSWORD': os.environ['PASSWORD'],
-        'Port' : os.environ['Port']
+        'ENGINE':'django.db.backends.postgresql_psycopg2',
+        'NAME':'postgres',
+        'USER': 'postgres',
+        'HOST': 'db.kvozprvrqnnpxknfvmvx.supabase.co',
+        'PASSWORD': 'Unlock!!!**123',
+        'Port' :'5432'
     }
 }
 
@@ -148,7 +148,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'users.User'
-
+CSRF_TRUSTED_ORIGINS = ['http://localhost:3000', 'https://cropviz.vercel.app/']
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
 

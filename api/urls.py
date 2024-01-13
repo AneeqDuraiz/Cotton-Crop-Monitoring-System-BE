@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import ClassificationView, CropRotationView, ClassificationView,GetPointsNDVIView, CropRotationView, DeletePatchJobsView, FarmView, FieldView,GetStoredAvgNDVIView, GetFields,FarmDetail, AvgNDVI, GetJobsView , GridNDVI, SeasonView,PatchFieldView,JobView, SeasonDetail,DeleteFieldView,GetSeasons, FieldStatsView
+from .views import BareSoilDetectionView, ClassificationView, CropRotationView, ClassificationView,GetPointsNDVIView, CropRotationView, DeletePatchJobsView, FarmView, FieldView,GetStoredAvgNDVIView, GetFields,FarmDetail, AvgNDVI, GetJobsView , GridNDVI, SeasonView,PatchFieldView,JobView, SeasonDetail,DeleteFieldView,GetSeasons, FieldStatsView, SoilEstimationView
 
 
 urlpatterns = [
@@ -29,6 +29,9 @@ urlpatterns = [
     path('job/patchjob/<int:jobId>/', DeletePatchJobsView.as_view()),
 
     path('field/getPrediction/', ClassificationView.as_view()),
+     path('field/getBareSoilPrediction/', BareSoilDetectionView.as_view()),
+    path('field/getSOMPrediction/', SoilEstimationView.as_view()),
+
 
     path('farm/getCropRotation/<int:farmId>/', CropRotationView.as_view()),
     

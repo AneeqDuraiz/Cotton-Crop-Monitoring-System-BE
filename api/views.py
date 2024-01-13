@@ -20,6 +20,7 @@ from django.db.models import Prefetch
 from datetime import datetime
 from django.utils import timezone
 from background_task import background
+from sklearn.preprocessing import StandardScaler
 
 
 
@@ -1094,10 +1095,12 @@ class ClassificationView(APIView):
         
         
         S2 = ee.ImageCollection("COPERNICUS/S2")
-        
+
         def addNDVI_S2(img):
             ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
             return img.addBands(ndvi)
+
+
         coordinates = request.data["coordinates"]
         coordinates = json.loads(coordinates)
         for coord in coordinates:
@@ -1134,12 +1137,12 @@ class ClassificationView(APIView):
         input_data=[]
         input_data.append(dictionary)
         input_array = convert_Into_Numpy_Format2(features)
-        
-        iclassifier = joblib.load('cotton22_rf.pkl')
-        print(iclassifier)
-        predictions = iclassifier.predict(np.vstack(input_array))       
 
-        print('predictions')
+        iclassifier = joblib.load('cotton22_rf.pkl')
+
+        predictions = iclassifier.predict(np.vstack(input_array))
+
+        # print(predictions)
         element_counts = defaultdict(int)
 
         # Count occurrences of elements in the array
@@ -1148,7 +1151,7 @@ class ClassificationView(APIView):
 
         # Convert the defaultdict to a regular dictionary if needed
         element_counts = dict(element_counts)
-        
+
         def get_most_common_label(element_counts):
             labels = {0: "No Crop", 1: "Cotton", 2: "Other Crop"}
 
@@ -1161,8 +1164,406 @@ class ClassificationView(APIView):
             return most_common_label
 
         finalPrediction = get_most_common_label(element_counts)
+
         
         return JsonResponse({"prediction": finalPrediction})
+
+def convert_Into_Numpy_Format_baresoil(data_list):
+    array = np.array([(
+                d['B1'],
+                d['B2'],
+                d['B3'],
+                d['B4'],
+                d['B5'],
+                d['B6'],
+                d['B7'],
+                d['B8'],
+                d['B8A'],
+                d['B9'],
+                d['B10'],
+                d['B11'],
+                d['B12'],
+                d['NDVI'],
+                d['SAVI'],
+                d['BI'],
+                d['BI2'],
+                d['CI1'],
+                d['SAVI'],
+                )for d in data_list])
+
+    return array
+
+
+class BareSoilDetectionView(APIView):
+    def post(self, request):
+        token = request.COOKIES.get('jwt')
+        if not token:
+            return Response({"Authentication Failed": "No JWT tokken found"}, status= 400)
+
+        try:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return Response({"Authentication Failed": "Expired JWT Signature Error"}, status= 400)
+        
+
+
+        S2 = ee.ImageCollection("COPERNICUS/S2")
+
+        def calculate_ndvi(img):
+            ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
+            return img.addBands(ndvi)
+
+        def calculate_tvi(img):
+            tvi = img.expression(
+                "((NIR - R) / (NIR + R + 0.5))**0.5",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'R': img.select('B4'),   # Red band (B4)
+                }
+            ).rename('TVI')
+            return img.addBands(tvi)
+
+        # Function to calculate SAVI
+        def calculate_savi(img):
+            savi = img.expression(
+                '((NIR - R) / (NIR + R + L)) * (1 + L)',
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'R': img.select('B4'),    # Red band (B4)
+                    'L': 0.428                   # L is the soil brightness correction factor (adjust as needed)
+                }
+            ).rename('SAVI')
+            return img.addBands(savi)
+
+        # Function to calculate Brightness Index (BI)
+        def calculate_bi(img):
+            bi = img.expression(
+                "sqrt((B4**2 + B3**2)) / 2",
+                {
+                    'B3': img.select('B3'),  # Green band
+                    'B4': img.select('B4')   # Red band
+                }
+            ).rename('BI')
+            return img.addBands(bi)
+
+        # Function to calculate Second Brightness Index (BI2)
+        def calculate_bi2(img):
+            bi2 = img.expression(
+                "sqrt((B4**2 + B3**2 + B8**2)) / 3",
+                {
+                    'B3': img.select('B3'),  # Green band
+                    'B4': img.select('B4'),  # Red band
+                    'B8': img.select('B8')   # Near-Infrared band
+                }
+            ).rename('BI2')
+            return img.addBands(bi2)
+
+
+        # Function to calculate Clay Index (CI1)
+        def calculate_ci1(img):
+            ci1 = img.expression(
+                "sqrt((0.0694 * B2 + 0.1073 * B3 + 0.1379 * B4 + 0.0711 * B8 + 0.0202 * B11 + 0.0695 * B12))",
+                {
+                    'B2': img.select('B2'),
+                    'B3': img.select('B3'),
+                    'B4': img.select('B4'),
+                    'B8': img.select('B8'),
+                    'B11': img.select('B11'),
+                    'B12': img.select('B12')
+                }
+            ).rename('CI1')
+            return img.addBands(ci1)
+
+        # Function to calculate Bare Soil Index (BSI)
+        def calculate_bsi(img):
+            bsi = img.expression(
+                "((B11 + B4) - (B8 + B2)) / ((B11 + B4) + (B8 + B2))",
+                {
+                    'B2': img.select('B2'),  # Blue band
+                    'B4': img.select('B4'),  # Red band
+                    'B8': img.select('B8'),  # Near-Infrared band
+                    'B11': img.select('B11') # Shortwave Infrared band
+                }
+            ).rename('BSI')
+            return img.addBands(bsi)
+
+        def calculate_satvi(img):
+            satvi = img.expression(
+                "1.5 * ((NIR - RED) / (NIR + RED + 0.5)) - 0.5",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'RED': img.select('B4')   # Red band (B4)
+                }
+            ).rename('SATVI')
+            return img.addBands(satvi)
+
+        # Function to calculate Modified Soil-Adjusted Vegetation Index (MSAVI)
+        def calculate_msavi(img):
+            msavi = img.expression(
+                "(2 * NIR + 1 - sqrt((2 * NIR + 1)**2 - 8 * (NIR - R))) / 2",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band
+                    'R': img.select('B4')    # Red band
+                }
+            ).rename('MSAVI')
+            return img.addBands(msavi)
+
+
+        coordinates = request.data["coordinates"]
+        date = request.data["date"]
+        coordinates = json.loads(coordinates)
+        for coord in coordinates:
+            coord['lat'] = float(coord['lat'])
+            coord['lng'] = float(coord['lng'])
+
+        polygon_coordinates = [[coord['lng'], coord['lat']] for coord in coordinates]
+        # Create a polygon geometry from the coordinates
+
+        polygon_geometry = ee.Geometry.Polygon(polygon_coordinates)
+        filtered = S2.filterBounds(polygon_geometry)
+
+        sorted_collection = filtered.sort(date, False).map(calculate_ndvi).map(calculate_tvi).map(calculate_savi).map(calculate_bi).map(calculate_bi2).map(calculate_ci1).map(calculate_bsi)
+        most_recent_image = sorted_collection.first()
+        features = most_recent_image.reduceRegion(reducer=ee.Reducer.mean(), geometry=polygon_geometry,scale=30)
+
+        indices = features.getInfo()
+        dictionary = {}
+
+        dictionary['B1'] = indices.get('B1')
+        dictionary['B2'] = indices.get('B2')
+        dictionary['B3'] = indices.get('B3')
+        dictionary['B4'] = indices.get('B4')
+        dictionary['B5'] = indices.get('B5')
+        dictionary['B6'] = indices.get('B6')
+        dictionary['B7'] = indices.get('B7')
+        dictionary['B8'] = indices.get('B8')
+        dictionary['B8A'] = indices.get('B8A')
+        dictionary['B9'] = indices.get('B9')
+        dictionary['B10'] = indices.get('B10')
+        dictionary['B11'] = indices.get('B11')
+        dictionary['B12'] = indices.get('B12')
+        dictionary['NDVI'] = indices.get('NDVI')
+        dictionary['SAVI'] = indices.get('SAVI')
+        dictionary['BI'] = indices.get('BI')
+        dictionary['BI2'] = indices.get('BI2')
+        dictionary['CI1'] = indices.get('CI1')
+        dictionary['SAVI'] = indices.get('SAVI')
+
+        input_data=[]
+        input_data.append(dictionary)
+        input_array = convert_Into_Numpy_Format_baresoil(input_data)
+
+        iclassifier = joblib.load('baresoil_rf_22.pkl')
+        sclaer_baresoil = joblib.load('baresoil_scaler.pkl')
+        predictions = iclassifier.predict(sclaer_baresoil.transform(input_array))
+
+        def get_most_common_label(element):
+            labels = {0: "no baresoil", 1: "baresoil"}
+            most_common_label = labels.get(element[0], "Unknown")
+
+            return most_common_label
+
+
+        finalPrediction = get_most_common_label(predictions)
+        return JsonResponse({"prediction": finalPrediction})
+
+
+
+def convert_Into_Numpy_Format_SOM(data_list):
+    array = np.array([(
+            d['B1'],
+            d['B2'],
+            d['B3'],
+            d['B4'],
+            d['B5'],
+            d['B6'],
+            d['B7'],
+            d['B8'],
+            d['B8A'],
+            d['B9'],
+            d['B10'],
+            d['B11'],
+            d['B12'],
+            d['NDVI'],
+            d['SAVI'],
+            d['BI'],
+            d['BI2'],
+            d['CI1'],
+            d['SAVI'],
+        )for d in data_list])
+
+    return array
+
+class SoilEstimationView(APIView):
+    def post(self, request):
+        token = request.COOKIES.get('jwt')
+        if not token:
+            return Response({"Authentication Failed": "No JWT tokken found"}, status= 400)
+
+        try:
+            payload = jwt.decode(token, 'secret', algorithms=['HS256'])
+        except jwt.ExpiredSignatureError:
+            return Response({"Authentication Failed": "Expired JWT Signature Error"}, status= 400)
+        S2 = ee.ImageCollection("COPERNICUS/S2")
+
+        def calculate_ndvi(img):
+            ndvi = img.normalizedDifference(['B8', 'B4']).rename('NDVI')
+            return img.addBands(ndvi)
+
+        def calculate_tvi(img):
+            tvi = img.expression(
+                "((NIR - R) / (NIR + R + 0.5))**0.5",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'R': img.select('B4'),   # Red band (B4)
+                }
+            ).rename('TVI')
+            return img.addBands(tvi)
+
+        # Function to calculate SAVI
+        def calculate_savi(img):
+            savi = img.expression(
+                '((NIR - R) / (NIR + R + L)) * (1 + L)',
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'R': img.select('B4'),    # Red band (B4)
+                    'L': 0.428                   # L is the soil brightness correction factor (adjust as needed)
+                }
+            ).rename('SAVI')
+            return img.addBands(savi)
+
+        # Function to calculate Brightness Index (BI)
+        def calculate_bi(img):
+            bi = img.expression(
+                "sqrt((B4**2 + B3**2)) / 2",
+                {
+                    'B3': img.select('B3'),  # Green band
+                    'B4': img.select('B4')   # Red band
+                }
+            ).rename('BI')
+            return img.addBands(bi)
+
+        # Function to calculate Second Brightness Index (BI2)
+        def calculate_bi2(img):
+            bi2 = img.expression(
+                "sqrt((B4**2 + B3**2 + B8**2)) / 3",
+                {
+                    'B3': img.select('B3'),  # Green band
+                    'B4': img.select('B4'),  # Red band
+                    'B8': img.select('B8')   # Near-Infrared band
+                }
+            ).rename('BI2')
+            return img.addBands(bi2)
+
+
+        # Function to calculate Clay Index (CI1)
+        def calculate_ci1(img):
+            ci1 = img.expression(
+                "sqrt((0.0694 * B2 + 0.1073 * B3 + 0.1379 * B4 + 0.0711 * B8 + 0.0202 * B11 + 0.0695 * B12))",
+                {
+                    'B2': img.select('B2'),
+                    'B3': img.select('B3'),
+                    'B4': img.select('B4'),
+                    'B8': img.select('B8'),
+                    'B11': img.select('B11'),
+                    'B12': img.select('B12')
+                }
+            ).rename('CI1')
+            return img.addBands(ci1)
+
+        # Function to calculate Bare Soil Index (BSI)
+        def calculate_bsi(img):
+            bsi = img.expression(
+                "((B11 + B4) - (B8 + B2)) / ((B11 + B4) + (B8 + B2))",
+                {
+                    'B2': img.select('B2'),  # Blue band
+                    'B4': img.select('B4'),  # Red band
+                    'B8': img.select('B8'),  # Near-Infrared band
+                    'B11': img.select('B11') # Shortwave Infrared band
+                }
+            ).rename('BSI')
+            return img.addBands(bsi)
+
+        def calculate_satvi(img):
+            satvi = img.expression(
+                "1.5 * ((NIR - RED) / (NIR + RED + 0.5)) - 0.5",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band (B8)
+                    'RED': img.select('B4')   # Red band (B4)
+                }
+            ).rename('SATVI')
+            return img.addBands(satvi)
+
+        # Function to calculate Modified Soil-Adjusted Vegetation Index (MSAVI)
+        def calculate_msavi(img):
+            msavi = img.expression(
+                "(2 * NIR + 1 - sqrt((2 * NIR + 1)**2 - 8 * (NIR - R))) / 2",
+                {
+                    'NIR': img.select('B8'),  # Near-Infrared band
+                    'R': img.select('B4')    # Red band
+                }
+            ).rename('MSAVI')
+            return img.addBands(msavi)
+
+        date = request.data["date"]
+        coordinates = request.data["coordinates"]
+        coordinates = json.loads(coordinates)
+        for coord in coordinates:
+            coord['lat'] = float(coord['lat'])
+            coord['lng'] = float(coord['lng'])
+
+        polygon_coordinates = [[coord['lng'], coord['lat']] for coord in coordinates]
+        # Create a polygon geometry from the coordinates
+
+        polygon_geometry = ee.Geometry.Polygon(polygon_coordinates)
+        filtered = S2.filterBounds(polygon_geometry)
+
+        sorted_collection = filtered.sort(date, False).map(calculate_ndvi).map(calculate_tvi).map(calculate_savi).map(calculate_bi).map(calculate_bi2).map(calculate_ci1).map(calculate_bsi)
+        most_recent_image = sorted_collection.first()
+        features = most_recent_image.reduceRegion(reducer=ee.Reducer.mean(), geometry=polygon_geometry,scale=30)
+
+        indices = features.getInfo()
+        dictionary = {}
+
+        dictionary['B1'] = indices.get('B1')
+        dictionary['B2'] = indices.get('B2')
+        dictionary['B3'] = indices.get('B3')
+        dictionary['B4'] = indices.get('B4')
+        dictionary['B5'] = indices.get('B5')
+        dictionary['B6'] = indices.get('B6')
+        dictionary['B7'] = indices.get('B7')
+        dictionary['B8'] = indices.get('B8')
+        dictionary['B8A'] = indices.get('B8A')
+        dictionary['B9'] = indices.get('B9')
+        dictionary['B10'] = indices.get('B10')
+        dictionary['B11'] = indices.get('B11')
+        dictionary['B12'] = indices.get('B12')
+        dictionary['NDVI'] = indices.get('NDVI')
+        dictionary['SAVI'] = indices.get('SAVI')
+        dictionary['BI'] = indices.get('BI')
+        dictionary['BI2'] = indices.get('BI2')
+        dictionary['CI1'] = indices.get('CI1')
+        dictionary['BSI'] = indices.get('BSI')
+
+        input_data=[]
+        input_data.append(dictionary)
+        input_array = convert_Into_Numpy_Format_SOM(input_data)
+
+        iclassifier = joblib.load('som_rf.pkl')
+        sclaer_som = joblib.load('som_scaler.pkl')
+        predictions = iclassifier.predict(sclaer_som.transform(input_array))
+
+        def get_most_common_label(element):
+            labels = {0: "low", 1: "moderate", 2:"adequate", 3:"high"}
+            most_common_label = labels.get(element[0], "Unknown")
+
+            return most_common_label
+
+
+        finalPrediction = get_most_common_label(predictions)
+        return JsonResponse({"prediction": finalPrediction})
+
+
 
 
 
