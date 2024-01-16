@@ -1153,7 +1153,7 @@ class ClassificationView(APIView):
         element_counts = dict(element_counts)
 
         def get_most_common_label(element_counts):
-            labels = {0: "No Crop", 1: "Cotton", 2: "Other Crop"}
+            labels = {0: "No Cotton", 1: "Cotton", 2: "No Cotton"}
 
             # Find the element with the highest count
             most_common_element = max(element_counts, key=element_counts.get)
