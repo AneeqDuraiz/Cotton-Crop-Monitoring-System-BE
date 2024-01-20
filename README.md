@@ -32,6 +32,7 @@ To run the project locally, follow these steps:
 
 
 ## 🔗 Contact Me
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](linkedin.com/in/aneeq-duraiz)
+[<img width="48" height="48" src="https://img.icons8.com/color/48/linkedin.png" alt="LinkedIn"/>](https://www.linkedin.com/in/aneeq-duraiz/)
+[<img width="48" height="48" src="https://img.icons8.com/color/48/gmail-new.png" alt="Gmail"/>](mailto:aneeqduraiz21@gmail.com)
 
 
